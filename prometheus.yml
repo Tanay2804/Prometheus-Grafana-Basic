@@ -1,0 +1,27 @@
+# prometheus/prometheus.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# LAB 1 — Task 3
+#
+# Prometheus pulls (scrapes) metrics from targets on a fixed interval.
+# The FastAPI app must be running locally before Prometheus can scrape it.
+#
+# host.docker.internal → resolves to the host machine from inside Docker.
+# On Linux: replace with your machine's local IP (e.g. 192.168.1.x)
+# ─────────────────────────────────────────────────────────────────────────────
+
+global:
+  scrape_interval:     5s   # How often Prometheus scrapes each target
+  evaluation_interval: 5s  # How often alert rules are evaluated
+
+scrape_configs:
+
+  # The FastAPI app running in Docker on the compose network
+  - job_name: 'app'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+
+  # Prometheus monitoring itself — useful to verify Prometheus is alive
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

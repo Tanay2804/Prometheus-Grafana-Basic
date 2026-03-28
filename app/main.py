@@ -10,6 +10,7 @@ from app.metrics import (
     request_duration_seconds,
     predictions_total,
 )
+import random
 
 app = FastAPI()
 
@@ -50,25 +51,53 @@ def read_root():
 
 
 def classify_risk(pred):
-    return "High" if pred == 1 else "Low"
+    mapping = {
+        0: "No disease",
+        1: "Mild",
+        2: "Moderate",
+        3: "Severe",
+        4: "Very severe"
+    }
+    return mapping[pred]
 
 
-@app.post("/predict")
-def predict(data: HeartRequest):
-    # Expect 13 features for Cleveland dataset
+# ---------------------------------------------------------------
+def generate_realistic_sample():
+    return [
+        int(random.gauss(54, 9)),  # age
+        random.uniform(0, 1),  # sex
+        random.uniform(1, 4),  # cp
+        int(random.gauss(130, 20)),  # trestbps
+        int(random.gauss(245, 50)),  # chol
+        random.uniform(0, 1),  # fbs
+        random.uniform(0, 2),  # restecg
+        int(random.gauss(150, 22)),  # thalach
+        random.uniform(0, 1),  # exang = 1 sometimes
+        round(random.gauss(2.5, 1.0), 2),  # oldpeak
+        random.uniform(1, 3),  # slope
+        random.uniform(0, 3),  # ca
+        random.choice([3, 6, 7]),  # thal (valid values)
+    ]
 
-    prediction = model.predict([data.features])[0]
+
+@app.get("/predict")
+def predict():
+    features = generate_realistic_sample()
+
+    prediction = model.predict([features])[0]
     risk = classify_risk(prediction)
+
     predictions_total.labels(risk_level=risk).inc()
-    return {"prediction": int(prediction), "risk_level": risk}
+
+    return {"features": features, "prediction": int(prediction), "risk_level": risk}
 
 
-# example post payload: 
+# example post payload:
 # curl -X POST "http://127.0.0.1:8000/predict" \
 # -H "Content-Type: application/json" \
 # -d '{"features":[63,1,3,145,233,1,0,150,0,2.3,0,0,1]}'
 # {"prediction":0,"risk_level":"Low"}
-
+# --------------------------------------------------------------
 @app.post("/simulate")
 def simulate():
     import random
